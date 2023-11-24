@@ -32,9 +32,10 @@ begin
  pas l'exporter telle quelle.
 *)
 
+(* (client, dealer, transactionNumber) *)
 type_synonym transid= "nat*nat*nat"
 
-type_synonym price= "nat" (* "nat*nat" ? *)
+type_synonym price= "nat" (* "nat*nat" for float ? *)
 type_synonym sellerPrice= "price"
 type_synonym buyerPrice= "price"
 
@@ -69,8 +70,16 @@ type_synonym transaction= "transid * price"
 (* Il est conseillé de séparer le traitement des messages en 3 sous-fonctions: 
   traiterPay, traiterAck et traiterCancel *)
 
+(* treatPay is only effective for a inprogress transaction *)
 fun treatPay::"transid \<Rightarrow> price \<Rightarrow> transBdd \<Rightarrow> transBdd" where
-  "treatPay tid price tbdd = tbdd"
+  "treatPay tid newPrice tbdd = (
+    case assoc tid tbdd of
+        Some (InProgress sellerPrice oldBuyerPrice) \<Rightarrow> 
+          if (newPrice > oldBuyerPrice) then
+            modify tid (InProgress sellerPrice newPrice) tbdd
+          else tbdd
+      | _ \<Rightarrow> tbdd
+  )"
 
 fun treatAck::"transid \<Rightarrow> price \<Rightarrow> transBdd \<Rightarrow> transBdd" where
   "treatAck tid price tbdd = tbdd"

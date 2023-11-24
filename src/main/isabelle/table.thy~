@@ -30,6 +30,11 @@ where
 
 (* Lemme1: Si toutes les clés sont uniques dans la table t, un couple (k,v) appartient à la liste t
    si et seulement quand on cherche k dans la table on trouve v. *)
+lemma mapProperty: "uniqueKey table \<longrightarrow> (List.member table (k,v) \<longleftrightarrow> assoc k table = Some v)"
+  apply (induct table)
+  apply simp
+  apply (simp add: member_rec(2))
+  by (smt assoc.elims list.sel(1) list.sel(3) list.simps(3) member_rec(1) prod.inject table.option.distinct(1) table.option.inject uniqueKey.elims(2))
 
 (* Lemme2: Soit une table t, si on modifie la valeur associée à k dans t (on lui associe une nouvelle valeur v), 
    alors si l'on cherche k dans t on obtient v. *)

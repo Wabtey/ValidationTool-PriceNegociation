@@ -2,15 +2,15 @@ theory tp89proof
 imports Main table "~~/src/HOL/Library/Code_Target_Nat" 
 begin
 
-(* quickcheck [size=7,tester=narrowing,timeout=300]
-   nitpick [timeout=300]
+(* 
+  quickcheck [size=7,tester=narrowing,timeout=300]
+  nitpick [timeout=300]
 
   Si on veut du temps supplémentaire avec sledgehammer:
   sledgehammer [provers=e cvc4 spass remote_vampire z3,timeout=300]
 
   Pour guider l'utilisation de théorèmes particuliers: 
   sledgehammer [provers=e cvc4 spass remote_vampire z3,timeout=300] (add: th1 th2 ...)
-
 *)
 
 
@@ -34,12 +34,26 @@ begin
 
 type_synonym transid= "nat*nat*nat"
 
+type_synonym price= "nat" (* "nat*nat" ? *)
+type_synonym sellerPrice= "price"
+type_synonym buyerPrice= "price"
+
 datatype message= 
-  Pay transid nat  
-| Ack transid nat
+  Pay transid buyerPrice  
+| Ack transid sellerPrice
 | Cancel transid
 
-type_synonym ligneBdd= ""
+(*
+  InProgress (seller's price) (buyer's price) |
+  Validated (agreed price) |
+  Canceled
+*)
+datatype state=
+  InProgress sellerPrice buyerPrice
+| Validated price
+| Canceled
+
+type_synonym ligneBdd= "state"
 
 (* Le type d'un element de la Bdd: l'identifiant de transaction associée à une ligne de la Bdd *)
 
@@ -50,11 +64,22 @@ type_synonym transBdd= "(transid , ligneBdd) table"
   - transid: transaction's id
   - nat: transaction's total
 *)
-type_synonym transaction= "transid * nat"
+type_synonym transaction= "transid * price"
 
 (* Il est conseillé de séparer le traitement des messages en 3 sous-fonctions: 
   traiterPay, traiterAck et traiterCancel *)
 
+fun treatPay::"transid \<Rightarrow> price \<Rightarrow> transBdd \<Rightarrow> transBdd" where
+  "treatPay tid price tbdd = tbdd"
+
+fun treatAck::"transid \<Rightarrow> price \<Rightarrow> transBdd \<Rightarrow> transBdd" where
+  "treatAck tid price tbdd = tbdd"
+
+fun traiterMessage::"message \<Rightarrow> transBdd \<Rightarrow> transBdd" where
+  (* modify only changes existing data (ignores if not in the table) *)
+  "traiterMessage (Cancel tid) tbdd = modify tid Canceled tbdd" |
+  "traiterMessage (Pay tid price) tbdd = treatPay tid price tbdd" |
+  "traiterMessage (Ack tid price) tbdd = treatAck tid price tbdd"
 
 (* Lemmes intermédiaires conseillés *)
 
@@ -131,7 +156,8 @@ where
 (* A partir de toute bdd valide, export contruit une liste de couples (tid,p) tel que
    p est strictement positif *)
 
-lemma totalPositive: "\<forall> trans::transaction. (snd trans) > 0"
+(* lemma totalPositive: "\<forall> trans::transaction. (snd trans) > 0" *)
+lemma totalPositive: "\<forall> trans::ligneBdd. trans = (Validated price) \<longrightarrow> price > 0"
 
 (* ---- Prop2: 
    Dans la liste de transactions validées, tout triplet {\tt (c,m,i)} (où

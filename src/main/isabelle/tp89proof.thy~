@@ -45,11 +45,7 @@ type_synonym ligneBdd= ""
 
 type_synonym transBdd= "(transid , ligneBdd) table"
 
-(*
-  Le type des transactions validées.
-  - transid: transaction's id
-  - nat: transaction's total
-*)
+(* Le type des transactions validées *)
 type_synonym transaction= "transid * nat"
 
 (* Il est conseillé de séparer le traitement des messages en 3 sous-fonctions: 
@@ -131,7 +127,8 @@ where
 (* A partir de toute bdd valide, export contruit une liste de couples (tid,p) tel que
    p est strictement positif *)
 
-lemma totalPositive: "\<forall> trans::transaction. (snd trans) > 0"
+(* Définir Prop1 *)
+
 
 (* ---- Prop2: 
    Dans la liste de transactions validées, tout triplet {\tt (c,m,i)} (où
@@ -161,7 +158,6 @@ lemma totalPositive: "\<forall> trans::transaction. (snd trans) > 0"
 
 (* Définir prop2 *)
 
-lemma transidUnique: "\<forall> trans1 trans2::transaction. fst trans1 = fst trans2 \<longrightarrow> trans1 = trans2"
 
 (* Prop 3 *)
 (* Toute transaction (même validée) peut être annulée. *)

@@ -98,7 +98,17 @@ fun traiterMessage::"message \<Rightarrow> transBdd \<Rightarrow> transBdd" wher
 
    Au préalable, il est conseillé de faire des lemmes intermédiaires pour les 3 types de messages à traiter: Pay, Ack, Cancel et
    de les utiliser pour prouver celui-ci *)
+lemma preciseModificationPay:
+  "tid1\<noteq>tid2 \<and> assoc tid1 tbdd = assoc tid1 (traiterMessage (Pay tid2 price) tbdd)"
+  quickcheck [size=7,tester=narrowing,timeout=300]
+  nitpick [timeout=300]
+  apply (induct tbdd)
+  apply simp
+  oops
 
+lemma preciseModification:
+  "preciseModificationPay \<and> preciseModificationAck \<and> preciseModificationCancel"
+  sorry
 
 (* Lemme 2 *)
 (* Quelque soit la bdd quand on traite un message (Cancel tid), on obtient une nouvelle 

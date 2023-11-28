@@ -109,15 +109,19 @@ lemma preciseModificationPay:
 
 lemma preciseModificationAck:
   "tid1\<noteq>tid2 \<longrightarrow> assoc tid1 tbdd = assoc tid1 (traiterMessage (Ack tid2 price) tbdd)"
+  (*
   quickcheck [size=7,tester=narrowing,timeout=300]
   nitpick [timeout=300]
+  *)
   sorry
 
 
 lemma preciseModificationCancel:
   "tid1\<noteq>tid2 \<longrightarrow> assoc tid1 tbdd = assoc tid1 (traiterMessage (Cancel tid2) tbdd)"
+  (*
   quickcheck [size=7,tester=narrowing,timeout=300]
   nitpick [timeout=300]
+  *)
   sorry
 
 lemma preciseModification:
@@ -129,6 +133,11 @@ lemma preciseModification:
 (* Quelque soit la bdd quand on traite un message (Cancel tid), on obtient une nouvelle 
    bdd dans laquelle tid est associé à un statut annulé, et des prix client et marchand 
    indéfinis *)
+lemma cancelCultureIsReal: (* in negociation *)
+  "assoc tid (traiterMessage (Cancel tid) tbdd) = Some Canceled"
+  apply (induct tbdd)
+  apply simp
+  by (simp add: mapModificationProperty)
  
 (* On traite les messages en commencant par la fin de la liste. On voit la liste comme une file. 
    Coherent avec ce qui se passe dans l'IHM. Cela simplifie grandement les preuves! *)

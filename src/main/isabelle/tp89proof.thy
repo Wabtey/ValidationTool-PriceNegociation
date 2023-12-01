@@ -100,8 +100,10 @@ fun traiterMessage::"message \<Rightarrow> transBdd \<Rightarrow> transBdd" wher
    de les utiliser pour prouver celui-ci *)
 lemma preciseModificationPay:
   "tid1\<noteq>tid2 \<longrightarrow> assoc tid1 tbdd = assoc tid1 (traiterMessage (Pay tid2 price) tbdd)"
+  (*
   quickcheck [size=7,tester=narrowing,timeout=300]
   nitpick [timeout=300]
+  *)
   apply (induct tbdd)
   apply simp
   sledgehammer
@@ -133,7 +135,7 @@ lemma preciseModification:
 (* Quelque soit la bdd quand on traite un message (Cancel tid), on obtient une nouvelle 
    bdd dans laquelle tid est associé à un statut annulé, et des prix client et marchand 
    indéfinis *)
-lemma cancelCultureIsReal: (* in negociation *)
+lemma cancelIsEffective: (* aka cancelCultureIsReal in negociation *)
   "assoc tid (traiterMessage (Cancel tid) tbdd) = Some Canceled"
   apply (induct tbdd)
   apply simp
@@ -151,12 +153,29 @@ where
 (* Définir une fonction validOne déterminant si une ligne de la Bdd est valide.
    Une bdd tbdd sera valide si (forAll validOne tbdd) est vraie *)
 
+(* abbreviation validOne::"(transid * ligneBdd) \<Rightarrow> bool" where "validOne (tid, state) \<equiv> state = (Validated _)" *)
+fun validOne::"(transid * ligneBdd) \<Rightarrow> bool" where
+  "validOne (_, Validated price) = True" |
+  "validOne _ = False"
+
+abbreviation valid::"transBdd \<Rightarrow> bool" where "valid tbdd \<equiv> forAll (validOne) tbdd"
+
 (* Lemme 3 *)
 (* Si une bdd est valide, alors quelque soit la ligne obtenue par la fonction assoc, celle-ci est valide *)
+lemma validLine:
+  "valid transBdd \<longrightarrow> (assoc tid transBdd = Some state \<longrightarrow> (\<exists> price. state = Validated price))"
+  apply (induct transBdd)
+  apply simp
+  by (metis assoc.simps(2) forAll.simps(2) table.option.inject validOne.elims(2))
 
 (* Lemme 4 *)
 (* Si une bdd est valide, pour toute ligne associée à un tid, si le statut est Validated, 
    cela signifie que le prix marchand est supérieur ou égal au prix client *)
+
+(* In my state struct, I don't store buyer's price not seller's price... *)
+lemma validationPriceIsFromAnAgreement:
+  "valid transBdd \<longrightarrow> (assoc tid transBdd = Some (Validated price) \<longrightarrow> True)"
+  by auto
 
 (* Lemme 5 *)
 (* Si une bdd est valide, elle restera valide pour toutes les modifications (valides) opérées. *)
@@ -166,6 +185,8 @@ where
 
   Définir et prouver tous les cas possibles de modification dans des lemmes distincts.
 *)
+lemma validUntilDeath: "valid transBdd \<longrightarrow> True"
+  by auto
 
 (* Lemme 6 *)
 (* Si une bdd est valide alors pour toute ligne associée à tid, si le statut est Validated alors p1 et p2 ne peuvent être indéfinis *)

@@ -119,10 +119,8 @@ lemma preciseModificationPay:
 
 lemma preciseModificationAck:
   "tid1\<noteq>tid2 \<longrightarrow> assoc tid1 tbdd = assoc tid1 (traiterMessage (Ack tid2 price) tbdd)"
-  (*
   quickcheck [size=7,tester=narrowing,timeout=300]
   nitpick [timeout=300]
-  *)
   apply (induct tbdd)
   apply simp
   sledgehammer

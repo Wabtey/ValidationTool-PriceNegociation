@@ -83,7 +83,14 @@ fun treatPay::"transid \<Rightarrow> price \<Rightarrow> transBdd \<Rightarrow> 
 
 (* TODO: treatAck *)
 fun treatAck::"transid \<Rightarrow> price \<Rightarrow> transBdd \<Rightarrow> transBdd" where
-  "treatAck tid price tbdd = tbdd"
+  "treatAck tid newPrice tbdd = (
+    case assoc tid tbdd of
+        Some (InProgress oldSellerPrice buyerPrice) \<Rightarrow>
+          if (newPrice < oldSellerPrice) then
+            modify tid (InProgress newPrice buyerPrice) tbdd
+          else tbdd
+      | _ \<Rightarrow> tbdd
+  )"
 
 fun traiterMessage::"message \<Rightarrow> transBdd \<Rightarrow> transBdd" where
   (* modify only changes existing data (ignores if not in the table) *)
@@ -116,6 +123,9 @@ lemma preciseModificationAck:
   quickcheck [size=7,tester=narrowing,timeout=300]
   nitpick [timeout=300]
   *)
+  apply (induct tbdd)
+  apply simp
+  sledgehammer
   sorry
 
 

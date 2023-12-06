@@ -124,12 +124,26 @@ fun traiterMessage::"message \<Rightarrow> transBdd \<Rightarrow> transBdd" wher
   "traiterMessage (Pay tid price) tbdd = treatPay tid price tbdd" |
   "traiterMessage (Ack tid price) tbdd = treatAck tid price tbdd"
 
+fun traiterMessageList:: "message list \<Rightarrow> transBdd"
+where
+"traiterMessageList [] = []" |
+"traiterMessageList (m#r)= (traiterMessage m (traiterMessageList r))"
+
+fun keyPresent::"'a \<Rightarrow> ('a * 'b) list \<Rightarrow> bool" where
+  "keyPresent _ [] = False" |
+  "keyPresent e ((key, _) # rem) = (e = key \<or> keyPresent e rem)"
+
 fun export::"transBdd \<Rightarrow> transaction list" where
   "export [] = []" |
   "export ((tid, state) # bdd) = (
+    let validated_transactions = export bdd in
     case state of
-      Validated price \<Rightarrow> (tid, price) # export bdd |
-      _ \<Rightarrow> export bdd
+        Validated price \<Rightarrow> 
+          if price = 0 \<or> keyPresent tid validated_transactions then
+            validated_transactions
+          else
+            (tid, price) # validated_transactions
+      | _ \<Rightarrow> export bdd
   )"
 
 (* ----- Exportation en Scala (Isabelle 2018) -------*)

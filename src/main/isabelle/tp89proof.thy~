@@ -81,6 +81,7 @@ fun treatPay::"transid \<Rightarrow> price \<Rightarrow> transBdd \<Rightarrow> 
       | _ \<Rightarrow> tbdd
   )"
 
+(* TODO: treatAck *)
 fun treatAck::"transid \<Rightarrow> price \<Rightarrow> transBdd \<Rightarrow> transBdd" where
   "treatAck tid newPrice tbdd = (
     case assoc tid tbdd of
@@ -118,10 +119,8 @@ lemma preciseModificationPay:
 
 lemma preciseModificationAck:
   "tid1\<noteq>tid2 \<longrightarrow> assoc tid1 tbdd = assoc tid1 (traiterMessage (Ack tid2 price) tbdd)"
-  (*
   quickcheck [size=7,tester=narrowing,timeout=300]
   nitpick [timeout=300]
-  *)
   apply (induct tbdd)
   apply simp
   sledgehammer
@@ -182,7 +181,7 @@ lemma validLine:
 (* Si une bdd est valide, pour toute ligne associée à un tid, si le statut est Validated, 
    cela signifie que le prix marchand est supérieur ou égal au prix client *)
 
-(* In my state struct, I don't store buyer's price not seller's price... *)
+(* In my state struct impl, I do not store buyer's price nor seller's price... *)
 lemma validationPriceIsFromAnAgreement:
   "valid transBdd \<longrightarrow> (assoc tid transBdd = Some (Validated price) \<longrightarrow> True)"
   by auto
@@ -200,13 +199,29 @@ lemma validUntilDeath: "valid transBdd \<longrightarrow> True"
 
 (* Lemme 6 *)
 (* Si une bdd est valide alors pour toute ligne associée à tid, si le statut est Validated alors p1 et p2 ne peuvent être indéfinis *)
+lemma "valid transBdd \<longrightarrow> (assoc tid transBdd = Some (Validated price) \<longrightarrow> price \<ge> 0)"
+  by auto
 
 (* Lemme 7 *)
 (* Dans une bdd valide alors pour toute ligne associée à tid, avec des prix client et marchand définis, si le prix client est supérieur
    ou égal au prix du marchand alors le statut de la ligne est Validated *)
 
+(* NOTE: In my implementation, I differenciate the two states so... *)
+lemma finalPrice:
+  "valid transBdd \<longrightarrow> (
+    assoc tid transBdd = Some (InProgress sellerPrice buyerPrice) \<longrightarrow>
+      (buyerPrice \<ge> sellerPrice \<longrightarrow> assoc tid transBdd = Some(Validated buyerPrice))
+  )"
+  oops
+
 (* Lemme 8 *)
 (* Dans une bdd valide, pour toute ligne associée à tid, si le statut est Partial, alors le prix du client ou du marchand est défini. *)
+
+(* TODO: Quel statut ?! *)
+lemma
+  "valid transBdd \<longrightarrow> (
+    assoc tid transBdd = Some state \<longrightarrow> True
+  )"
 
 (* Lemme 9 *)
 (* Si une bdd est valide, traiter un message Pay sur cette bdd rendra une bdd valide *)

@@ -58,7 +58,7 @@ public class Ihm extends JFrame implements Observer {
     private JButton buttonM;
     private JButton buttonCancel;
 
-    private Bank bank = new Bank(new validator.EmmanuelleEpain.ConcreteValidator());
+    private Bank bank = new Bank(new validator.FlorianEpain.ConcreteValidator());
 
     public Ihm() {
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);

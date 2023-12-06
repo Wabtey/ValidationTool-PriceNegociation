@@ -243,8 +243,12 @@ lemma prop7: "prop7customer \<and> prop7dealer"
   été validée avec un montant {\tt am} celui-ci ne peut être changé.
 *)
 
-lemma prop8: "False"
-  oops
+lemma prop8: "
+  List.member (traiterMessageList messages) (tid, Validated agreedPrice) \<and>
+  \<not>List.member lastMessages (Cancel tid) \<longrightarrow>
+    List.member (export (traiterMessageList (lastMessages @ messages))) (tid, agreedPrice)
+"
+  sorry
 
 (* Prop9: Le montant associé à une transaction validée correspond à un prix proposé
   par le client pour cette transaction. *)

@@ -146,6 +146,115 @@ fun export::"transBdd \<Rightarrow> transaction list" where
       | _ \<Rightarrow> export bdd
   )"
 
+(* ---- Prop 1: Toutes les transactions validées ont un montant strictement supérieur à 0. *)
+
+lemma totalPositive: "List.member (export tbdd) transaction \<longrightarrow> (snd transaction) > 0"
+  sorry
+
+(* ---- Prop2: 
+   Dans la liste de transactions validées, tout triplet {\tt (c,m,i)} (où
+  {\tt c} est un numéro de client, {\tt m} est un numéro de marchand et {\tt i}
+  un numéro de transaction) n'apparaît qu'une seule fois.
+*)
+
+lemma transidUnique:
+  "List.member (export tbdd) trans1 \<and> List.member (export tbdd) trans2 \<longrightarrow>
+      fst trans1 = fst trans2 \<longrightarrow> trans1 = trans2"
+  sorry
+
+(* Prop 3 *)
+(* Toute transaction (même validée) peut être annulée. *)
+(* Prop 4*)
+(* Toute transaction annulée l'est définitivement: un message {\tt (Cancel
+    (c,m,i))} rend impossible  la validation d'une transaction de numéro {\tt
+    i} entre un marchand {\tt m} et un client {\tt c}.*)
+
+(* = Our implementation respects the consent *)
+lemma prop3and4: "
+  \<not>List.member
+    (export (traiterMessage (Cancel tid) (traiterMessageList messages)))
+    (tid, anyPrice)
+"
+  sorry
+
+(* Prop 5:
+Si un message {\tt Pay} et un message {\tt Ack}, tels que le montant
+  proposé par le {\tt Pay} est strictement supérieur à 0, supérieur ou égal au
+  montant proposé par le message {\tt Ack} et non annulée, ont été envoyés alors la transaction figure
+  dans la liste des transactions validées.
+*)
+
+lemma prop5: "
+  \<not>List.member messages (Cancel tid) \<and>
+  List.member messages (Pay tid buyerPrice) \<and>
+  List.member messages (Ack tid sellerPrice) \<and>
+  buyerPrice > 0 \<and> buyerPrice \<ge> sellerPrice \<longrightarrow>
+    List.member (export (traiterMessageList messages)) (tid, buyerPrice)
+"
+  sorry
+
+(* Prop 6:
+Toute transaction figurant dans la liste des transactions validées l'a été
+  par un message {\tt Pay} et un message {\tt Ack} tels que le montant proposé
+  par le {\tt Pay} est supérieur ou égal au montant proposé par le message {\tt
+    Ack}.  *)
+
+lemma prop6: "
+  List.member (export (traiterMessageList messages)) (tid, buyerPrice) \<longrightarrow> 
+    (\<exists> sellerPrice::nat.  
+      List.member messages (Pay tid buyerPrice) \<and>
+      List.member messages (Ack tid sellerPrice) \<and>
+      buyerPrice > 0 \<and> buyerPrice \<ge> sellerPrice
+    )
+"
+  sorry
+
+(* Prop 7 *)
+(*
+  Si un client (resp. marchand) a proposé un montant {\tt am} pour une
+  transaction, tout montant {\tt am'} inférieur (resp. supérieur) proposé par la 
+  suite est ignoré par l'agent de validation.
+*)
+
+lemma prop7customer: "
+  buyerPrice > lowerBuyerPrice \<and>
+  List.member earlyMessages (Pay tid buyerPrice) \<and>
+  List.member lateMessages (Pay tid lowerBuyerPrice) \<longrightarrow>
+    List.member (export (traiterMessageList (lateMessage@earlyMessages))) (tid, agreedPrice) \<longrightarrow>
+      agreedPrice = buyerPrice
+"
+  sorry
+
+(* TODO: prop7dealer *)
+lemma prop7dealer: "
+  sellerPrice < higherSellerPrice \<and>
+  List.member earlyMessages (Ack tid sellerPrice) \<and>
+  List.member lateMessages (Ack tid higherSellerPrice) \<longrightarrow>
+    List.member (export (traiterMessageList (lateMessage@earlyMessages))) (tid, agreedPrice) \<longrightarrow>
+      agreedPrice \<ge> sellerPrice
+"
+  oops
+
+lemma prop7: "prop7customer \<and> prop7dealer"
+  oops
+
+(* Prop 8 *)
+(* Toute transaction validée ne peut être renégociée: si une transaction a
+  été validée avec un montant {\tt am} celui-ci ne peut être changé.
+*)
+
+lemma prop8: "False"
+  oops
+
+(* Prop9: Le montant associé à une transaction validée correspond à un prix proposé
+  par le client pour cette transaction. *)
+    
+lemma prop9: "
+  List.member (export (traiterMessageList messages)) (tid, agreedPrice) \<longrightarrow>
+    List.member messages (Pay tid agreedPrice)
+"
+  sorry
+
 (* ----- Exportation en Scala (Isabelle 2018) -------*)
 
 (* Directive d'exportation *)

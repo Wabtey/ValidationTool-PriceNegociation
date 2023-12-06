@@ -43,7 +43,6 @@ class ConcreteValidator extends TransValidator {
   // TODO: getValidTrans()
   def getValidTrans = List()
 }
-
 object Product_Type {
 
   def equal_proda[A: HOL.equal, B: HOL.equal](x0: (A, B), x1: (A, B)): Boolean =
@@ -92,17 +91,36 @@ object tp89 {
       extends message
   final case class Cancel(a: (Nat.nat, (Nat.nat, Nat.nat))) extends message
 
+  def keyPresent[A: HOL.equal, B](uu: A, x1: List[(A, B)]): Boolean =
+    (uu, x1) match {
+      case (uu, Nil) => false
+      case (e, (key, uv) :: rem) =>
+        HOL.eq[A](e, key) || keyPresent[A, B](e, rem)
+    }
+
   def export(
       x0: List[((Nat.nat, (Nat.nat, Nat.nat)), state)]
   ): List[((Nat.nat, (Nat.nat, Nat.nat)), Nat.nat)] =
     x0 match {
       case Nil => Nil
-      case (tid, state) :: bdd =>
+      case (tid, state) :: bdd => {
+        val validated_transactions
+            : List[((Nat.nat, (Nat.nat, Nat.nat)), Nat.nat)] = export(bdd);
         (state match {
           case InProgress(_, _) => export(bdd)
-          case Validated(price) => (tid, price) :: export(bdd)
-          case Canceled()       => export(bdd)
+          case Validated(price) =>
+            (if (
+               Nat.equal_nata(price, Nat.zero_nat) ||
+               keyPresent[(Nat.nat, (Nat.nat, Nat.nat)), Nat.nat](
+                 tid,
+                 validated_transactions
+               )
+             )
+               validated_transactions
+             else (tid, price) :: validated_transactions)
+          case Canceled() => export(bdd)
         })
+      }
     }
 
   def treatAck(

@@ -148,7 +148,12 @@ fun export::"transBdd \<Rightarrow> transaction list" where
 
 (* ---- Prop 1: Toutes les transactions validées ont un montant strictement supérieur à 0. *)
 
-lemma totalPositive: "List.member (export tbdd) transaction \<longrightarrow> (snd transaction) > 0"
+(* It also works if we write it as:
+  "List.member (export tbdd) transaction \<longrightarrow> (snd transaction) > 0"
+*)
+lemma totalPositive:
+  "List.member (export (traiterMessageList messages)) transaction \<longrightarrow>
+    (snd transaction) > 0"
   sorry
 
 (* ---- Prop2: 
@@ -157,6 +162,13 @@ lemma totalPositive: "List.member (export tbdd) transaction \<longrightarrow> (s
   un numéro de transaction) n'apparaît qu'une seule fois.
 *)
 
+(* if we had written it with treatMessageList,
+   we could have done away the verification for keyPresent in export *)
+
+(*
+  this lemma means that our export can handle nonUniqueKey TransDataBase
+  But keep in mind, that traiterMessage can't have two `Validated price` for the same `tid`
+*)
 lemma transidUnique:
   "List.member (export tbdd) trans1 \<and> List.member (export tbdd) trans2 \<longrightarrow>
       fst trans1 = fst trans2 \<longrightarrow> trans1 = trans2"
@@ -225,7 +237,7 @@ lemma prop7customer: "
 "
   sorry
 
-(* FXIME: agreedPrice \<ge> sellerPrice is not the right predicate *)
+(* FIXME: agreedPrice \<ge> sellerPrice is not the right predicate *)
 lemma prop7dealer: "
   sellerPrice < higherSellerPrice \<and>
   List.member earlyMessages (Ack tid sellerPrice) \<and>

@@ -239,18 +239,18 @@ where
 
 (* abbreviation validOne::"(transid * ligneBdd) \<Rightarrow> bool" where "validOne (tid, state) \<equiv> state = (Validated _)" *)
 fun validOne::"(transid * ligneBdd) \<Rightarrow> bool" where
-  "validOne (_, Validated price) = True" |
-  "validOne _ = False"
+  "validOne (_, Validated price) = (price > 0)" |
+  "validOne _ = True"
 
 abbreviation valid::"transBdd \<Rightarrow> bool" where "valid tbdd \<equiv> forAll (validOne) tbdd"
 
 (* Lemme 3 *)
 (* Si une bdd est valide, alors quelque soit la ligne obtenue par la fonction assoc, celle-ci est valide *)
 lemma validLine:
-  "valid transBdd \<longrightarrow> (assoc tid transBdd = Some state \<longrightarrow> (\<exists> price. state = Validated price))"
+  "valid transBdd \<longrightarrow> (assoc tid transBdd = Some state \<longrightarrow> validOne (tid,state))"
   apply (induct transBdd)
   apply simp
-  by (metis assoc.simps(2) forAll.simps(2) table.option.inject validOne.elims(2))
+  by (metis (full_types) assoc.simps(2) forAll.simps(2) old.prod.exhaust table.option.inject)
 
 (* Lemme 4 *)
 (* Si une bdd est valide, pour toute ligne associée à un tid, si le statut est Validated, 
@@ -313,6 +313,11 @@ lemma
 
 (* Lemme 13 *)
 (* traiterMessageList ne construit que des bdds valides *)
+(*
+lemma traiterMessageListReturnsValid:
+  "valid (traiterMessageList list bdd)"
+  oops
+*)
 
 
 (* ---- Prop 1: Toutes les transactions validées ont un montant strictement supérieur à 0. *)
@@ -320,10 +325,19 @@ lemma
 (* Lemme intermédiaire: Lemme 14 *)
 (* A partir de toute bdd valide, export contruit une liste de couples (tid,p) tel que
    p est strictement positif *)
-
-(* lemma totalPositive: "\<forall> trans::transaction. (snd trans) > 0" *)
-lemma totalPositive: "\<forall> trans::ligneBdd. trans = (Validated price) \<longrightarrow> price > 0"
+(*
+lemma lemma14: "valid tbdd \<longrightarrow> forAll validOne (export tbdd)"
   oops
+*)
+
+(* It also works if we write it as:
+  "List.member (export tbdd) transaction \<longrightarrow> (snd transaction) > 0"
+*)
+lemma totalPositive:
+  "List.member (export (traiterMessageList messages)) transaction \<longrightarrow>
+    (snd transaction) > 0"
+  sorry
+
 (* ---- Prop2: 
    Dans la liste de transactions validées, tout triplet {\tt (c,m,i)} (où
   {\tt c} est un numéro de client, {\tt m} est un numéro de marchand et {\tt i}
@@ -352,8 +366,18 @@ lemma totalPositive: "\<forall> trans::ligneBdd. trans = (Validated price) \<lon
 
 (* Définir prop2 *)
 
-lemma transidUnique: "\<forall> trans1 trans2::transaction. fst trans1 = fst trans2 \<longrightarrow> trans1 = trans2"
-  oops
+(* if we had written it with treatMessageList,
+   we could have done away the verification for keyPresent in export *)
+
+(*
+  this lemma means that our export can handle nonUniqueKey TransDataBase
+  But keep in mind, that traiterMessage can't have two `Validated price` for the same `tid`
+*)
+lemma transidUnique:
+  "List.member (export tbdd) trans1 \<and> List.member (export tbdd) trans2 \<longrightarrow>
+      fst trans1 = fst trans2 \<longrightarrow> trans1 = trans2"
+  sorry
+
 (* Prop 3 *)
 (* Toute transaction (même validée) peut être annulée. *)
 (* Prop 4*)
@@ -363,19 +387,44 @@ lemma transidUnique: "\<forall> trans1 trans2::transaction. fst trans1 = fst tra
 
 (* On fait les deux en une seule propriété *)
 
+(*
+lemma cancelIsAlwaysPossible:
+  "assoc tid (traiterMessage (Cancel tid) bdd) = Some (Canceled)"
+  using cancelIsEffective by blast
+*)
+
 (* Lemme 21 *)
 (* Dans une bdd si le statut d'une transaction est Cancelled, celui-ci reste Cancelled quelque soit le message traité *)
+lemma canceledForEver:
+  "assoc tid bdd = Some Canceled \<longrightarrow> assoc tid (traiterMessage msg bdd) = Some Canceled"
+  apply (induct bdd)
+  apply simp
+  sorry
 
 (* Lemme 22 *)
 (* Si un message (Cancel tid) apparaît dans une liste de message et que l'on construit
    une bdd par traitement de toute cette liste de message, alors dans cette bdd, la ligne 
    associée à la transation tid aura un statut Cancelled et les prix seront indéfinis *)
+lemma cancelIsPrior:
+  "List.member msgList (Cancel tid) \<longrightarrow> assoc tid (traiterMessageList msgList) = Some Canceled"
+  quickcheck [size=7,tester=narrowing,timeout=300]
+  nitpick [timeout=300]  
+  sorry
 
 (* Lemme 23 *)
 (* Dans une bdd si une transaction est annulée, celle-ci n'apparaîtra pas dans l'export *)
+lemma noCancelInExport:
+  "assoc tid bdd = Some Canceled \<longrightarrow> \<not>List.member (export bdd) tid"
 
 (* Définir prop 3 et 4 *)
 
+(* = Our implementation respects the consent *)
+lemma prop3and4: "
+  \<not>List.member
+    (export (traiterMessage (Cancel tid) (traiterMessageList messages)))
+    (tid, anyPrice)
+"
+  sorry
 
 (* Prop 5:
 Si un message {\tt Pay} et un message {\tt Ack}, tels que le montant
@@ -458,7 +507,14 @@ sorry
 
 
 (* Définir Prop5 *)
-
+lemma prop5: "
+  \<not>List.member messages (Cancel tid) \<and>
+  List.member messages (Pay tid buyerPrice) \<and>
+  List.member messages (Ack tid sellerPrice) \<and>
+  buyerPrice > 0 \<and> buyerPrice \<ge> sellerPrice \<longrightarrow>
+    List.member (export (traiterMessageList messages)) (tid, buyerPrice)
+"
+  sorry
 
 (* Prop 6:
 Toute transaction figurant dans la liste des transactions validées l'a été
@@ -478,6 +534,15 @@ Toute transaction figurant dans la liste des transactions validées l'a été
 (* Si une transaction figure dans le export alors elle a une ligne dans la bdd avec un statut Validated *)
 
 (* Définir Prop6 *)
+lemma prop6: "
+  List.member (export (traiterMessageList messages)) (tid, buyerPrice) \<longrightarrow> 
+    (\<exists> sellerPrice::nat.  
+      List.member messages (Pay tid buyerPrice) \<and>
+      List.member messages (Ack tid sellerPrice) \<and>
+      buyerPrice > 0 \<and> buyerPrice \<ge> sellerPrice
+    )
+"
+  sorry
 
 
 (* Prop 7 *)
@@ -500,11 +565,31 @@ Toute transaction figurant dans la liste des transactions validées l'a été
 (* Soit tbdd une bdd obtenue après traitement d'une liste de messages lmess et mc1 et mc2 deux prix tels que mc1>0 et mc2>mc1.
    Soit lmess une liste de messages contenant (Pay tid mc2) et ne contenant pas (Pay tid mc1). Si l'on traite (Pay tid mc1) 
    sur tbdd, ça ne changera pas la ligne associée à tid dans la bdd *)
+lemma prop7customer: "
+  buyerPrice > lowerBuyerPrice \<and>
+  List.member earlyMessages (Pay tid buyerPrice) \<and>
+  List.member lateMessages (Pay tid lowerBuyerPrice) \<longrightarrow>
+    List.member (export (traiterMessageList (lateMessage@earlyMessages))) (tid, agreedPrice) \<longrightarrow>
+      agreedPrice = buyerPrice
+"
+  sorry
 
 (* Prop7 pour un message marchand *)
 (* Soit tbdd une bdd obtenue après traitement d'une liste de messages lmess et mm1 et mm2 deux prix tels que mm2<mm1.
    Soit lmess une liste de messages contenant (Pay tid mm2) et ne contenant pas (Pay tid mm1). Si l'on traite (Pay tid mm1) 
    sur tbdd, ça ne changera pas la ligne associée à tid dans la bdd *)
+(* FIXME: agreedPrice \<ge> sellerPrice is not the right predicate *)
+lemma prop7dealer: "
+  sellerPrice < higherSellerPrice \<and>
+  List.member earlyMessages (Ack tid sellerPrice) \<and>
+  List.member lateMessages (Ack tid higherSellerPrice) \<longrightarrow>
+    List.member (export (traiterMessageList (lateMessage@earlyMessages))) (tid, agreedPrice) \<longrightarrow>
+      agreedPrice \<ge> sellerPrice
+"
+  oops
+
+lemma prop7: "prop7customer \<and> prop7dealer"
+  oops
 
 (* Prop 8 *)
 
@@ -518,12 +603,22 @@ Toute transaction figurant dans la liste des transactions validées l'a été
 
 
 (* Définir Prop8 *)
-
+lemma prop8: "
+  List.member (traiterMessageList messages) (tid, Validated agreedPrice) \<and>
+  \<not>List.member lastMessages (Cancel tid) \<longrightarrow>
+    List.member (export (traiterMessageList (lastMessages @ messages))) (tid, agreedPrice)
+"
+  sorry
 
 (* Prop9: Le montant associé à une transaction validée correspond à un prix proposé
   par le client pour cette transaction. *)
 
 (* Pas de lemmes intermédiaires *)
+lemma prop9: "
+  List.member (export (traiterMessageList messages)) (tid, agreedPrice) \<longrightarrow>
+    List.member messages (Pay tid agreedPrice)
+"
+  sorry
 
 
 end

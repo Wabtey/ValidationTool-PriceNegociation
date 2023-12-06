@@ -225,7 +225,7 @@ lemma prop7customer: "
 "
   sorry
 
-(* TODO: prop7dealer *)
+(* FXIME: agreedPrice \<ge> sellerPrice is not the right predicate *)
 lemma prop7dealer: "
   sellerPrice < higherSellerPrice \<and>
   List.member earlyMessages (Ack tid sellerPrice) \<and>

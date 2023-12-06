@@ -225,6 +225,7 @@ lemma prop7customer: "
 "
   sorry
 
+(* TODO: prop7dealer *)
 lemma prop7dealer: "
   sellerPrice < higherSellerPrice \<and>
   List.member earlyMessages (Ack tid sellerPrice) \<and>
@@ -235,15 +236,28 @@ lemma prop7dealer: "
   oops
 
 lemma prop7: "prop7customer \<and> prop7dealer"
-  sorry
+  oops
 
 (* Prop 8 *)
 (* Toute transaction validée ne peut être renégociée: si une transaction a
   été validée avec un montant {\tt am} celui-ci ne peut être changé.
 *)
 
+lemma prop8: "
+  List.member (traiterMessageList messages) (tid, Validated agreedPrice) \<and>
+  \<not>List.member lastMessages (Cancel tid) \<longrightarrow>
+    List.member (export (traiterMessageList (lastMessages @ messages))) (tid, agreedPrice)
+"
+  sorry
+
 (* Prop9: Le montant associé à une transaction validée correspond à un prix proposé
   par le client pour cette transaction. *)
+    
+lemma prop9: "
+  List.member (export (traiterMessageList messages)) (tid, agreedPrice) \<longrightarrow>
+    List.member messages (Pay tid agreedPrice)
+"
+  sorry
 
 (* ----- Exportation en Scala (Isabelle 2018) -------*)
 
